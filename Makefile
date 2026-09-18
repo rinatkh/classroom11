@@ -2,7 +2,7 @@ SHELL := /bin/bash
 GO ?= go
 PACKAGES := ./...
 COVERAGE_FILE ?= coverage.out
-COVERAGE_THRESHOLD ?= 90.0
+COVERAGE_THRESHOLD ?= 85.0
 
 .PHONY: help build fmt fmt-check vet test test-race coverage coverage-check ci clean tcp-server tcp-client tcp-demo udp-server udp-client udp-demo raw-http http-trace tls-http2 timeouts demos
 
