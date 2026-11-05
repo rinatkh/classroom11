@@ -4,21 +4,34 @@ PACKAGES := ./...
 COVERAGE_FILE ?= coverage.out
 COVERAGE_THRESHOLD ?= 85.0
 
-.PHONY: help build fmt fmt-check vet test test-race coverage coverage-check ci clean tcp-server tcp-client tcp-demo udp-server udp-client udp-demo raw-http http-trace tls-http2 timeouts demos
+.PHONY: help run curl-demo api-check build fmt fmt-check vet test test-race coverage coverage-check ci clean tcp-server tcp-client tcp-demo udp-server udp-client udp-demo raw-http http-trace tls-http2 timeouts demos
 
 help:
 	@echo "Классная работа 11: сеть под HTTP"
+	@echo "  make run          - знакомый Task API занятия 10 на localhost:8080"
+	@echo "  make curl-demo    - прежний CRUD lifecycle (сначала пустой Store)"
 	@echo "  make tcp-demo     - TCP echo: соединение и поток байтов"
 	@echo "  make udp-demo     - UDP echo: отдельные датаграммы"
 	@echo "  make raw-http     - HTTP/1.1, записанный вручную в TCP"
 	@echo "  make http-trace   - события DNS/connect/reuse/first byte"
 	@echo "  make tls-http2    - локальные TLS и HTTP/2"
 	@echo "  make timeouts     - тайм-аут медленного ответа"
-	@echo "  make demos        - все автономные демонстрации"
+	@echo "  make demos        - все лаборатории вокруг запущенного Task API"
 	@echo "  make ci           - форматирование, vet, тесты, race, coverage, build"
+
+run:
+	$(GO) run ./cmd/api
+
+curl-demo:
+	bash ./scripts/curl-demo.sh
+
+api-check:
+	@curl --fail --silent --show-error --max-time 2 http://127.0.0.1:8080/health >/dev/null || \
+		{ echo "Сначала запустите Task API в другом терминале: make run"; exit 1; }
 
 build:
 	@mkdir -p bin
+	$(GO) build -buildvcs=false -o bin/task-api ./cmd/api
 	$(GO) build -buildvcs=false -o bin/tcp-server ./cmd/01_tcp_echo/server
 	$(GO) build -buildvcs=false -o bin/tcp-client ./cmd/01_tcp_echo/client
 	$(GO) build -buildvcs=false -o bin/udp-server ./cmd/02_udp_echo/server
@@ -62,7 +75,7 @@ tcp-client:
 	$(GO) run ./cmd/01_tcp_echo/client
 
 tcp-demo:
-	./scripts/tcp-demo.sh
+	GO="$(GO)" bash ./scripts/tcp-demo.sh
 
 udp-server:
 	$(GO) run ./cmd/02_udp_echo/server
@@ -71,7 +84,7 @@ udp-client:
 	$(GO) run ./cmd/02_udp_echo/client
 
 udp-demo:
-	./scripts/udp-demo.sh
+	GO="$(GO)" bash ./scripts/udp-demo.sh
 
 raw-http:
 	$(GO) run ./cmd/03_raw_http
@@ -85,10 +98,18 @@ tls-http2:
 timeouts:
 	$(GO) run ./cmd/06_timeouts
 
-demos: tcp-demo udp-demo raw-http http-trace tls-http2 timeouts
+# Сначала знакомый API и raw HTTP, затем свойства transport. Номера каталогов
+# сохранены для ссылок в материалах и не задают порядок live coding.
+demos: api-check
+	$(MAKE) raw-http
+	$(MAKE) tcp-demo
+	$(MAKE) udp-demo
+	$(MAKE) http-trace
+	$(MAKE) tls-http2
+	$(MAKE) timeouts
 
 ci: fmt-check vet test test-race coverage-check build
 
 clean:
-	rm -f bin/tcp-server bin/tcp-client bin/udp-server bin/udp-client bin/raw-http bin/http-trace bin/tls-http2 bin/timeouts coverage.out
+	rm -f bin/task-api bin/tcp-server bin/tcp-client bin/udp-server bin/udp-client bin/raw-http bin/http-trace bin/tls-http2 bin/timeouts coverage.out
 	@rmdir bin 2>/dev/null || true

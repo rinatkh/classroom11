@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -30,6 +31,7 @@ func BuildRawGET(host, path string) string {
 // SendRawGET показывает, что HTTP/1.1 — это правила записи байтов поверх TCP.
 // http.ReadResponse используется только для удобного разбора ответа, а запрос пишется вручную.
 func SendRawGET(ctx context.Context, address, host, path string) (RawHTTPResponse, error) {
+	slog.DebugContext(ctx, "raw HTTP exchange started")
 	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", address)
 	if err != nil {
 		return RawHTTPResponse{}, fmt.Errorf("dial HTTP server: %w", err)

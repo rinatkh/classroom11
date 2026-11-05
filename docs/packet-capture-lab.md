@@ -17,9 +17,13 @@
 2. Установите display filter `tcp.port == 8081`.
 3. Запустите `make tcp-server`, затем `make tcp-client`.
 4. Найдите handshake и сегменты с данными.
-5. Повторите с фильтром `udp.port == 8082` и UDP demo.
+5. Повторите с фильтром `udp.port == 8082`, `make udp-server` и `make udp-client`.
 
-Для raw HTTP используйте `tcp.port == 8080` только если запускаете HTTP server на этом порту. Локальный автономный `make raw-http` выбирает случайный свободный port; его номер выводится в request header `Host`.
+Для raw HTTP сначала запустите знакомый Task API через `make run`, выберите
+фильтр `tcp.port == 8080`, затем выполните `make raw-http`. Найдите те же
+`GET /health` и JSON response, которые видели через curl на занятии 10.
+Автоматические `make tcp-demo` и `make udp-demo` используют свободные порты;
+для фиксированных фильтров выше запускайте server/client вручную.
 
 ## Что спросить
 

@@ -1,13 +1,36 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-go run ./cmd/01_tcp_echo/server >"${TMPDIR:-/tmp}/classroom11-tcp.log" 2>&1 &
-server_pid=$!
-cleanup() { kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true; }
+demo_dir="$(mktemp -d "${TMPDIR:-/tmp}/classroom11-tcp.XXXXXX")"
+server_pid=""
+cleanup() {
+  if [[ -n "$server_pid" ]]; then
+    kill "$server_pid" 2>/dev/null || true
+    wait "$server_pid" 2>/dev/null || true
+  fi
+  rm -rf "$demo_dir"
+}
 trap cleanup EXIT
 
+# Запускаем бинарник, чтобы cleanup завершал сервер, а не оболочку go run.
+"${GO:-go}" build -o "$demo_dir/server" ./cmd/01_tcp_echo/server
+"${GO:-go}" build -o "$demo_dir/client" ./cmd/01_tcp_echo/client
+"$demo_dir/server" -addr 127.0.0.1:0 -ready-file "$demo_dir/address" >"$demo_dir/server.log" 2>&1 &
+server_pid=$!
+
+address=""
 for _ in {1..40}; do
-  if (echo > /dev/tcp/127.0.0.1/8081) 2>/dev/null; then break; fi
+  # Не зависим от LOG_LEVEL/LOG_FORMAT и текста служебного сообщения.
+  if [[ -s "$demo_dir/address" ]]; then
+    address="$(cat "$demo_dir/address")"
+    break
+  fi
+  if ! kill -0 "$server_pid" 2>/dev/null; then break; fi
   sleep 0.05
 done
-go run ./cmd/01_tcp_echo/client
+if [[ -z "$address" ]]; then
+  cat "$demo_dir/server.log" >&2
+  echo "TCP server не запустился" >&2
+  exit 1
+fi
+"$demo_dir/client" -addr "$address"

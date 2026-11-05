@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 )
 
@@ -18,6 +19,7 @@ type TLSInfo struct {
 // InspectTLS выполняет HTTPS-запрос и показывает, что согласовали клиент и сервер.
 // TLS защищает соединение, а ALPN выбирает HTTP/1.1 или HTTP/2 внутри этого соединения.
 func InspectTLS(ctx context.Context, client *http.Client, url string) (TLSInfo, error) {
+	slog.DebugContext(ctx, "TLS experiment started")
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return TLSInfo{}, fmt.Errorf("build HTTPS request: %w", err)

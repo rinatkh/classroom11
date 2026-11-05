@@ -8,9 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"strings"
 	"sync"
+
+	"github.com/rinatkh/classroom11/internal/logging"
 )
 
 // ServeTCPEcho принимает TCP-соединения и запускает отдельную goroutine для каждого клиента.
@@ -37,10 +40,13 @@ func ServeTCPEcho(ctx context.Context, listener net.Listener) error {
 			return fmt.Errorf("accept TCP connection: %w", err)
 		}
 
+		slog.DebugContext(ctx, "TCP connection accepted")
 		clients.Add(1)
 		go func() {
 			defer clients.Done()
-			_ = HandleTCPLines(conn)
+			if err := HandleTCPLines(conn); err != nil && ctx.Err() == nil {
+				logging.Error(ctx, "TCP connection failed", err)
+			}
 		}()
 	}
 }
@@ -69,6 +75,7 @@ func HandleTCPLines(conn net.Conn) error {
 // TCPExchange отправляет несколько строк через одно соединение и читает столько же ответов.
 // Переиспользование соединения позволяет увидеть: TCP-соединение не обязано завершаться после сообщения.
 func TCPExchange(ctx context.Context, address string, messages []string) ([]string, error) {
+	slog.DebugContext(ctx, "TCP exchange started", "messages", len(messages))
 	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", address)
 	if err != nil {
 		return nil, fmt.Errorf("dial TCP server: %w", err)

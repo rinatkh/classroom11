@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 )
 
@@ -29,6 +30,7 @@ func ServeUDPEcho(ctx context.Context, conn net.PacketConn) error {
 			}
 			return fmt.Errorf("read UDP datagram: %w", err)
 		}
+		slog.DebugContext(ctx, "UDP datagram received", "bytes", n)
 		if _, err := conn.WriteTo(buffer[:n], address); err != nil {
 			return fmt.Errorf("write UDP datagram: %w", err)
 		}
@@ -38,6 +40,7 @@ func ServeUDPEcho(ctx context.Context, conn net.PacketConn) error {
 // UDPExchange отправляет сообщения отдельными датаграммами и читает ответы.
 // Здесь нет Accept: UDP-сокет получает пакеты от разных адресов через один PacketConn.
 func UDPExchange(ctx context.Context, address string, messages []string) ([]string, error) {
+	slog.DebugContext(ctx, "UDP exchange started", "messages", len(messages))
 	conn, err := (&net.Dialer{}).DialContext(ctx, "udp", address)
 	if err != nil {
 		return nil, fmt.Errorf("dial UDP server: %w", err)

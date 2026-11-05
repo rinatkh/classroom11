@@ -9,23 +9,25 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/rinatkh/classroom11/internal/httpapi"
+	"github.com/rinatkh/classroom11/internal/task"
 )
 
 func TestDoTracedRequestsShowsReuse(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte("body must be consumed"))
-	}))
+	server := httptest.NewServer(httpapi.NewRouter(task.NewStore()))
 	defer server.Close()
 
 	transport := &http.Transport{MaxIdleConnsPerHost: 1}
 	defer transport.CloseIdleConnections()
 	client := &http.Client{Transport: transport, Timeout: time.Second}
-	events, err := DoTracedRequests(context.Background(), client, server.URL, 2)
+	events, err := DoTracedRequests(context.Background(), client, server.URL+"/health", 2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	var firstNew, secondReused, firstByte bool
+	responses := 0
 	for _, event := range events {
 		if event.Name == "GotConn" && event.Request == 1 && strings.Contains(event.Detail, "reused=false") {
 			firstNew = true
@@ -36,8 +38,11 @@ func TestDoTracedRequestsShowsReuse(t *testing.T) {
 		if event.Name == "FirstByte" {
 			firstByte = true
 		}
+		if event.Name == "Response" && event.Detail == "200 OK /health" {
+			responses++
+		}
 	}
-	if !firstNew || !secondReused || !firstByte {
+	if !firstNew || !secondReused || !firstByte || responses != 2 {
 		t.Fatalf("unexpected trace events: %#v", events)
 	}
 }

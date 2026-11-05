@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptrace"
 	"sync"
@@ -21,6 +22,7 @@ type TraceEvent struct {
 // DoTracedRequests выполняет несколько GET через один Client и собирает события httptrace.
 // Body полностью читается и закрывается: только тогда Transport обычно может вернуть connection в pool.
 func DoTracedRequests(ctx context.Context, client *http.Client, url string, count int) ([]TraceEvent, error) {
+	slog.DebugContext(ctx, "HTTP trace started")
 	var mu sync.Mutex
 	events := make([]TraceEvent, 0, count*5)
 	add := func(request int, name, detail string) {
@@ -73,6 +75,7 @@ func DoTracedRequests(ctx context.Context, client *http.Client, url string, coun
 		if err := response.Body.Close(); err != nil {
 			return nil, fmt.Errorf("close response %d: %w", i, err)
 		}
+		add(requestNumber, "Response", fmt.Sprintf("%s %s", response.Status, request.URL.Path))
 	}
 	return events, nil
 }

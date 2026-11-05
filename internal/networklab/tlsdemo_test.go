@@ -7,19 +7,20 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/rinatkh/classroom11/internal/httpapi"
+	"github.com/rinatkh/classroom11/internal/task"
 )
 
 func TestInspectTLSNegotiatesHTTP2(t *testing.T) {
-	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte("secure"))
-	}))
+	server := httptest.NewUnstartedServer(httpapi.NewRouter(task.NewStore()))
 	server.EnableHTTP2 = true
 	server.StartTLS()
 	defer server.Close()
 
 	client := server.Client()
 	client.Timeout = time.Second
-	info, err := InspectTLS(context.Background(), client, server.URL)
+	info, err := InspectTLS(context.Background(), client, server.URL+"/health")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,5 +1,8 @@
 # Шпаргалка: сеть под HTTP
 
+Пример приложения — Task API из Classroom 10: `curl /health` → raw HTTP к
+тому же серверу → наблюдение до прежнего Handler. См. [continuity](continuity.md).
+
 ## От URL до handler
 
 | Этап | Простой вопрос | Пример результата |
